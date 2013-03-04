@@ -9,9 +9,11 @@ black=(0,0,0)
 grey=(169,169,169)
 red=(255,0,0)
 size = 20
+pygame.init()
+font = pygame.font.SysFont("calibri", 14)
 
 class Tile(pygame.sprite.Sprite):
-	def __init__(self,isBomb=False):
+	def __init__(self):
 		pygame.sprite.Sprite.__init__(self)
 		self.border = pygame.Surface((size,size))
 		self.inside = pygame.Surface((size-2,size-2))
@@ -23,13 +25,19 @@ class Tile(pygame.sprite.Sprite):
 		self.image.blit(self.inside,(2,2))
 		self.rect = self.image.get_rect()
 		self.checked = False
-		self.isBomb = isBomb
+		self.isBomb = False
+		self.num = 0
 		
 	def check(self):
 		if (self.isBomb):
 			self.inside.fill(red)
 		else:
 			self.inside.fill(white)
+			print(self.num)
+			if (self.num != 0):
+				numtext = font.render(str(self.num), True, black)
+				self.inside.blit(numtext,(self.rect.width/4,numtext.get_height()/4))
+				
 		self.image.blit(self.inside,(2,2))
 		self.checked = True
 
@@ -37,7 +45,7 @@ class Grid(pygame.sprite.Group):
 	def __init__(self):
 		pygame.sprite.Group.__init__(self)
 		self.dimensions = (16,16)
-		self.bombs = 40
+		self.bombs = 60
 		test = list(range(self.dimensions[0]*self.dimensions[1]))
 		shuffle(test)
 		for i in range(self.dimensions[0]):
@@ -49,12 +57,20 @@ class Grid(pygame.sprite.Group):
 				else:
 					temp.isBomb = False
 				self.add(temp)
-		print(len(self.sprites()))
+		
+		for t in self.sprites():
+			if t.isBomb == False:
+				temp = pygame.sprite.Sprite()
+				temp.rect = t.rect.copy()
+				temp.rect.inflate_ip(2,2)
+				intersect = pygame.sprite.spritecollide(temp, self, False)
+				for i in intersect:
+					if i.isBomb:
+						t.num = t.num+1
 				
 def main():
-	pygame.init()
 	grid = Grid()
-	screen = pygame.display.set_mode((grid.dimensions[0]*size,grid.dimensions[1]*size))
+	screen = pygame.display.set_mode((grid.dimensions[0]*size+2,grid.dimensions[1]*size+2))
 	buttonpress = False
 	background = pygame.Surface(screen.get_size())
 	background = background.convert()
@@ -79,8 +95,6 @@ def main():
 					if intersect:
 						for i in intersect:
 							i.check()
-							if i.isBomb:
-								lose = True
 		
 		grid.draw(screen)
 		pygame.display.flip()
