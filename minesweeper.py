@@ -9,9 +9,12 @@ black=(0,0,0)
 grey=(169,169,169)
 red=(255,0,0)
 orange=(255,165,0)
+green=(124,252,0)
+blue=(0,0,205)
 size = 20
 pygame.init()
 font = pygame.font.SysFont("calibri", 14)
+bigfont = pygame.font.SysFont("calibri", 40)
 
 class Tile(pygame.sprite.Sprite):
 	def __init__(self):
@@ -46,22 +49,27 @@ class Tile(pygame.sprite.Sprite):
 		
 	def Flag(self):
 	# Returns True if a tile is being flagged, False if a tile is being unflagged
-		if self.flagged:
-			self.inside.fill(grey)
-			self.image.blit(self.inside,(2,2))
-			return False
+		if not self.checked:
+			if self.flagged:
+				self.flagged = False
+				self.inside.fill(grey)
+				self.image.blit(self.inside,(2,2))
+				return False
+			else:
+				self.flagged = True
+				flag = pygame.Surface((self.inside.get_width()-4,self.inside.get_height()-4))
+				flag.fill(orange)
+				self.inside.blit(flag,(2,2))
+				self.image.blit(self.inside,(2,2))
+				return True
 		else:
-			flag = pygame.Surface((self.inside.get_width()-4,self.inside.get_height()-4))
-			flag.fill(orange)
-			self.inside.blit(flag,(2,2))
-			self.image.blit(self.inside,(2,2))
-			return True
+			return False
 
 class Grid(pygame.sprite.Group):
 	def __init__(self):
 		pygame.sprite.Group.__init__(self)
 		self.dimensions = (16,16)
-		self.bombs = 20
+		self.bombs = 40
 		test = list(range(self.dimensions[0]*self.dimensions[1]))
 		shuffle(test)
 		for i in range(self.dimensions[0]):
@@ -88,18 +96,24 @@ def main():
 	# These will need to be reinitialized for a new game
 	grid = Grid()
 	flags = 0
+	correctFlags = 0
 	#
 	
-	screen = pygame.display.set_mode((grid.dimensions[0]*size+2,grid.dimensions[1]*size+2+30))
+	resolution = (grid.dimensions[0]*size+2,grid.dimensions[1]*size+2+30)
+	screen = pygame.display.set_mode(resolution)
+	info = pygame.Surface((grid.dimensions[0]*size+2,30))
+	info.fill(white)
+	clock = pygame.time.Clock()
 	lbuttonpress = False
 	rbuttonpress = False
-	background = pygame.Surface(screen.get_size())
-	background = background.convert()
-	background.fill(white)
+	gamestart = False
+	won = False
+	lost = False
 	
 	pygame.mouse.set_visible(True)
 	
 	while 1:
+		time = clock.tick(60)
 		for event in pygame.event.get():
 			if event.type == QUIT:
 				return
@@ -110,22 +124,35 @@ def main():
 					rbuttonpress = True
 			elif event.type == MOUSEBUTTONUP:
 				if not pygame.mouse.get_pressed()[0] and lbuttonpress:
+					if not gamestart:
+						gamestart = True
+						starttime = pygame.time.get_ticks()
+						
 					print('lclick')
 					lbuttonpress = False
 					mousesprite = pygame.sprite.Sprite()
+					if won or lost:
+						grid = Grid()
+						flags = 0
+						correctFlags = 0
+						starttime = pygame.time.get_ticks()
+						won = False
+						lost = False
 					mousesprite.rect = pygame.Rect(pygame.mouse.get_pos(), (1,1))
 					mintersect = pygame.sprite.spritecollide(mousesprite,grid,False)
 					if mintersect:
 						for m in mintersect:
 							m.Check()
-							if not m.isBomb and m.num == 0:
+							if m.isBomb:
+								lost = True
+							elif not m.isBomb and m.num == 0:
 								temp = pygame.sprite.Sprite()
 								temp.rect = m.rect.copy()
 								temp.rect.inflate_ip(2,2)
 								rintersect = pygame.sprite.spritecollide(temp,grid,False)
 								for r in rintersect:
-									if not r.checked:
-										mintersect.append(r)
+									if not r.checked and not any(item.rect == r.rect for item in mintersect):
+										mintersect.append(r)					
 				if not pygame.mouse.get_pressed()[2] and rbuttonpress:
 					print('rclick')
 					rbuttonpress = False
@@ -136,10 +163,32 @@ def main():
 						for i in intersect:
 							if i.Flag():
 								flags = flags+1
+								if i.isBomb:
+									correctFlags = correctFlags+1
+									if correctFlags == grid.bombs:
+										won = True
 							else:
 								flags = flags-1
-		
+								if i.isBomb:
+									correctFlags = correctFlags-1
+									
 		grid.draw(screen)
+		screen.blit(info,(0,grid.dimensions[0]*size+3))
+		if not won and not lost:
+			if gamestart: # Updates game info
+				currenttime = int((pygame.time.get_ticks()-starttime)/1000)
+				info.fill(white)
+				timetext = font.render('Time: ' + str(currenttime), True, black)
+				info.blit(timetext,(0,0))
+				flagstext = font.render('Flags: '+str(flags), True, black)
+				info.blit(flagstext,(resolution[0]/2,0))
+		else:
+			if won:
+				endtext = bigfont.render('You win!', True, blue)
+			else:
+				endtext = bigfont.render('You lose!', True, red)
+			fontsize=(endtext.get_width(),endtext.get_height())
+			screen.blit(endtext,(resolution[0]/2-fontsize[0]/2,(resolution[1]-30)/2-fontsize[1]/2))
 		pygame.display.flip()
 	
 if __name__ == '__main__':
