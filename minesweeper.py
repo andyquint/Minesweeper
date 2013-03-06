@@ -9,7 +9,7 @@ black=(0,0,0)
 grey=(169,169,169)
 red=(255,0,0)
 orange=(255,165,0)
-green=(124,252,0)
+brickred=(178,34,34)
 blue=(0,0,205)
 size = 20
 pygame.init()
@@ -186,9 +186,8 @@ def main():
 			if won:
 				endtext = bigfont.render('You win!', True, blue)
 			else:
-				endtext = bigfont.render('You lose!', True, red)
-			fontsize=(endtext.get_width(),endtext.get_height())
-			screen.blit(endtext,(resolution[0]/2-fontsize[0]/2,(resolution[1]-30)/2-fontsize[1]/2))
+				endtext = bigfont.render('You lose!', True, brickred)
+			screen.blit(endtext,(resolution[0]/2-endtext.get_width()/2,(resolution[1]-30)/2-endtext.get_height()/2))
 		pygame.display.flip()
 	
 if __name__ == '__main__':
