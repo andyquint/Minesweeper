@@ -5,6 +5,7 @@ Andrew Quintanilla
 Made for Python 3, using pygame 1.9.2.
 
 Things to do:
+- Disable clearing of flagged tiles
 - Add options for difficulty
 	* Beginning, intermediate, hard difficulties
 	* Custom difficulty
